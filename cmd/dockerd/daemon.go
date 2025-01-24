@@ -107,7 +107,7 @@ func (cli *daemonCLI) start(ctx context.Context) (err error) {
 	configureProxyEnv(cli.Config)
 	configureDaemonLogs(cli.Config)
 
-	log.G(ctx).Info("Starting up")
+	log.G(ctx).Info("Starting up gscho's Docker Daemon")
 
 	if cli.Config.Debug {
 		debug.Enable()

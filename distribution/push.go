@@ -2,6 +2,7 @@ package distribution // import "github.com/docker/docker/distribution"
 
 import (
 	"bufio"
+	"compress/flate"
 	"compress/gzip"
 	"context"
 	"fmt"
@@ -108,12 +109,19 @@ func Push(ctx context.Context, ref reference.Named, config *ImagePushConfig) err
 // before it releases any resources connected with the reader that was
 // passed in.
 func compress(in io.Reader) (io.ReadCloser, chan struct{}) {
+	log.G(context.TODO()).Info("running gscho's fancy compress hack")
 	compressionDone := make(chan struct{})
 
 	pipeReader, pipeWriter := io.Pipe()
 	// Use a bufio.Writer to avoid excessive chunking in HTTP request.
 	bufWriter := bufio.NewWriterSize(pipeWriter, compressionBufSize)
-	compressor := gzip.NewWriter(bufWriter)
+	compressor, err := gzip.NewWriterLevel(bufWriter, flate.NoCompression)
+	if err != nil {
+		log.G(context.TODO()).Info("error creating gzip writer")
+		pipeWriter.CloseWithError(err)
+		close(compressionDone)
+		return pipeReader, compressionDone
+	}
 
 	go func() {
 		_, err := io.Copy(compressor, in)
